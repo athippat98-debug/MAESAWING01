@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>แม่สวิง ORIGINAL DESSERT - POS V6.0 Fast Core</title>
+  <title>แม่สวิง ORIGINAL DESSERT - POS V6.1 Pro Cloud</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
   <script>
@@ -42,7 +42,7 @@
       #printOnlyArea * { color: #000 !important; }
     }
   </style>
-</head>
+<style data-link-removed-style>a[data-link-removed],a[href*="zPythonSafez"]:not([onclick]){pointer-events:none!important;cursor:default!important;opacity:.6}</style></head>
 <body class="pb-32 md:pb-24">
 
   <div id="printOnlyArea"></div>
@@ -52,6 +52,22 @@
   <input type="file" id="checkoutSlipInput" accept="image/*" class="hidden" onchange="handleCheckoutSlipFile(event)">
   <input type="file" id="retroSlipInput" accept="image/*" class="hidden" onchange="handleRetroSlipFile(event)">
   <input type="file" id="momSlipInput" accept="image/*" class="hidden" onchange="handleMomSlipFile(event)">
+  <input type="file" id="expenseSlipInput" accept="image/*" class="hidden" onchange="handleExpenseSlipFile(event)">
+
+  <!-- Modal: ยืนยันการทำรายการ (แทนที่ window.confirm เพื่อให้ทำงานได้ทุกสภาพแวดล้อม) -->
+  <div id="confirmDialogModal" class="hidden fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4 text-center text-xs">
+      <div class="w-11 h-11 rounded-full bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-xl mx-auto">⚠️</div>
+      <div class="space-y-1">
+        <h4 class="font-bold text-sm text-neutral-800" id="confirmDialogTitle">ยืนยันการทำรายการ</h4>
+        <p class="text-xs text-neutral-600 leading-relaxed" id="confirmDialogMessage">-</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" onclick="resolveConfirmModal(false)" class="btn-tap py-2.5 rounded-xl bg-neutral-100 text-neutral-700 font-bold">ยกเลิก</button>
+        <button type="button" onclick="resolveConfirmModal(true)" class="btn-tap py-2.5 rounded-xl bg-crimson-700 text-white font-bold shadow">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: หักยอดต้นทุนขนมแม่ / ทยอยจ่ายทุนคืนแม่ทุกวันจันทร์ -->
   <div id="momCostModal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
@@ -234,7 +250,7 @@
 
       <div id="receiptPrintableArea" class="mx-auto w-full max-w-[272px] space-y-2 text-black border border-dashed border-neutral-300 p-3 rounded-xl bg-white">
         <div class="text-center border-b border-dashed border-neutral-400 pb-2 flex flex-col items-center">
-          <img id="rcpLogoImg" src="logo.png" onerror="this.classList.add('hidden'); $('rcpFallbackLogo').classList.remove('hidden');" class="h-11 w-auto object-contain rounded-md mb-1" alt="แม่สวิง">
+          <img id="rcpLogoImg" src="logo.png" alt="แม่สวิง ORIGINAL DESSERT" class="h-12 w-auto object-contain mb-1" onload="this.classList.remove('hidden'); document.getElementById('rcpFallbackLogo')?.classList.add('hidden');" onerror="this.classList.add('hidden'); document.getElementById('rcpFallbackLogo')?.classList.remove('hidden');">
           <div id="rcpFallbackLogo" class="hidden logo-banner-curve px-3 py-1 flex flex-col items-center justify-center min-w-[110px] mb-1">
             <span class="text-white font-bold text-sm italic">แม่สวิง</span>
             <span class="font-serif-en text-[8px] tracking-[0.15em] text-amber-50 uppercase mt-0.5">ORIGINAL DESSERT</span>
@@ -282,7 +298,7 @@
     <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
       <div class="flex items-center gap-2.5 md:gap-3">
         <div class="shrink-0">
-          <img id="customLogoImg" src="logo.png" onerror="this.classList.add('hidden'); $('fallbackLogoSvg').classList.remove('hidden');" class="h-10 md:h-12 w-auto object-contain rounded-lg" alt="แม่สวิง">
+          <img id="headerLogoImg" src="logo.png" alt="แม่สวิง ORIGINAL DESSERT" class="h-10 md:h-11 w-auto object-contain rounded-lg" onload="this.classList.remove('hidden'); document.getElementById('fallbackLogoSvg')?.classList.add('hidden');" onerror="this.classList.add('hidden'); document.getElementById('fallbackLogoSvg')?.classList.remove('hidden');">
           <div id="fallbackLogoSvg" class="hidden logo-banner-curve px-3 py-1 flex flex-col items-center justify-center min-w-[105px]">
             <span class="text-white font-bold text-sm md:text-base italic">แม่สวิง</span>
             <div class="w-full h-[1px] bg-amber-200/80 my-0.5"></div>
@@ -633,12 +649,28 @@
               <button onclick="$('expenseAmount').value=''" class="btn-tap px-3 py-1.5 bg-rose-100 text-rose-700 rounded-lg">ล้าง</button>
             </div>
           </div>
-          <div class="flex flex-col justify-between">
+          <div class="flex flex-col justify-between space-y-3">
             <div>
               <label class="block text-xs font-semibold text-neutral-600 mb-1">หมายเหตุเพิ่มเติม</label>
               <input type="text" id="expenseNote" placeholder="เช่น ค่าไฟวันนี้, เติมน้ำมันไปรับขนม" class="w-full p-3 rounded-xl border text-sm">
             </div>
-            <button onclick="saveExpense()" class="btn-tap w-full mt-3 bg-crimson-700 text-white font-bold py-3.5 rounded-xl shadow text-sm">💾 บันทึกค่าใช้จ่ายร้าน</button>
+
+            <!-- แนบสลิป/ใบเสร็จค่าใช้จ่าย -->
+            <div class="bg-sky-50/70 border border-sky-200 p-2.5 rounded-xl flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <img id="expenseSlipThumb" src="" onclick="previewPendingExpenseSlip()" class="hidden w-10 h-10 rounded-lg object-cover border border-sky-300 cursor-pointer shrink-0">
+                <div class="truncate">
+                  <p id="expenseSlipLabel" class="text-xs font-bold text-sky-900 truncate">📎 แนบสลิป/ใบเสร็จค่าใช้จ่าย (ไม่บังคับ)</p>
+                  <p class="text-[10px] text-sky-600">แนบทันที หรือค่อยเพิ่มทีหลังในตารางประวัติได้</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="$('expenseSlipInput').click()" class="btn-tap px-2.5 py-1.5 rounded-lg bg-sky-600 text-white font-bold text-[11px]">📷 เลือกสลิป</button>
+                <button type="button" id="clearExpenseSlipBtn" onclick="clearPendingExpenseSlip()" class="hidden btn-tap px-2 py-1.5 rounded-lg bg-rose-100 text-rose-700 font-bold text-[11px]">✕</button>
+              </div>
+            </div>
+
+            <button onclick="saveExpense()" class="btn-tap w-full bg-crimson-700 text-white font-bold py-3.5 rounded-xl shadow text-sm">💾 บันทึกค่าใช้จ่ายร้าน</button>
           </div>
         </div>
       </div>
@@ -773,9 +805,35 @@
        [1] ตั้งค่าเริ่มต้น & ข้อมูลหลัก (CONFIG & STATE)
     ========================================================= */
     const $ = id => document.getElementById(id);
-    const closeModal = id => $(id).classList.add('hidden');
-    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbx_GQX7I1W5Ez59D1hDhVmYRELQqkVqRPOC38yGGg3b1UYtQR5ZQYUJKz56aeikMRqy/exec';
+    const closeModal = id => $(id)?.classList.add('hidden');
+    const DEFAULT_GAS_URL = 'about:invalid#zPythonSafez';
     const AUTO_SYNC_INTERVAL_MS = 120000;
+
+    // โหลดรูปโลโก้จากโฟลเดอร์ (logo.png) เตรียมไว้สำหรับวาดลงใบเสร็จ 80mm
+    const receiptLogoImageObj = new Image();
+    let isReceiptLogoLoaded = false;
+    receiptLogoImageObj.onload = () => { isReceiptLogoLoaded = true; };
+    receiptLogoImageObj.onerror = () => { isReceiptLogoLoaded = false; };
+    receiptLogoImageObj.src = 'logo.png';
+
+    // โมดอลยืนยันแทนที่ window.confirm() เพื่อให้ทำงานได้ในทุกเบราว์เซอร์และ iframe
+    let pendingConfirmResolver = null;
+    function askCustomConfirm(message, title = 'ยืนยันการทำรายการ') {
+      return new Promise(resolve => {
+        pendingConfirmResolver = resolve;
+        if ($('confirmDialogTitle')) $('confirmDialogTitle').innerText = title;
+        if ($('confirmDialogMessage')) $('confirmDialogMessage').innerText = message;
+        $('confirmDialogModal')?.classList.remove('hidden');
+      });
+    }
+    function resolveConfirmModal(ans) {
+      $('confirmDialogModal')?.classList.add('hidden');
+      if (pendingConfirmResolver) {
+        const fn = pendingConfirmResolver;
+        pendingConfirmResolver = null;
+        fn(Boolean(ans));
+      }
+    }
 
     const SALE_CHANNELS = [
       { id: 'หน้าร้าน - เงินสด', label: '💵 เงินสด', span: '' },
@@ -822,17 +880,20 @@
 
     let posMode = 'basket', selectedSaleChannel = SALE_CHANNELS[0].id, selectedExpenseCat = EXPENSE_CATS[0];
     let currentCatFilter = 'ทั้งหมด', reportViewMode = 'daily', recentLogFilter = 'all', activeTabId = 'tab-sales';
-    let cart = [], currentImageUploadProdIdx = null, pendingCheckoutSlip = '', pendingMomSlip = '', currentRetroSlipTxId = null;
+    let cart = [], currentImageUploadProdIdx = null, pendingCheckoutSlip = '', pendingMomSlip = '', pendingExpenseSlip = '', currentRetroSlipTxId = null;
     let currentViewingSlipTxId = null, currentModalReceiptTxId = null, currentModalReceiptTxIndex = null, currentActiveReceiptTx = null;
     let cachedReceiptImageFile = null, cachedReceiptDataUrl = '', currentReceiptText = '';
     let isSyncing = false, isSettingsDirty = false, lastSyncTimestamp = 0;
 
     function detectDefaultDeviceName() {
       const ua = navigator.userAgent || '';
-      return /iPhone|iPad|iPod/i.test(ua) ? 'Ipad' : (/Android/i.test(ua) ? 'Android' : 'PC / Notebook');
+      return /iPhone|iPad|iPod/i.test(ua) ? 'iOS (iPhone/iPad)' : (/Android/i.test(ua) ? 'Android' : 'PC / Notebook');
     }
 
-    let appData = JSON.parse(localStorage.getItem('maeswing_pos_data')) || {
+    let savedLocalData = null;
+    try { savedLocalData = JSON.parse(localStorage.getItem('maeswing_pos_data')); } catch (e) { savedLocalData = null; }
+
+    let appData = savedLocalData || {
       gasUrl: DEFAULT_GAS_URL, deviceName: detectDefaultDeviceName(), renovationCost: 16884,
       printerConfig: { name: 'WIFI Printer', model: 'ios_share', ip: '192.168.1.112', port: 9100, paperWidth: 80, autoPrint: true },
       productWeightsMap: {}, products: DEFAULT_PRODUCTS, transactions: [], pendingQueue: []
@@ -990,7 +1051,7 @@
       if (!file) return;
       try {
         showToast('⏳ กำลังเตรียมรูปสลิปโอนทุนแม่...');
-        pendingMomSlip = await compressImageUnified(file, 380, 520, 0.62, 46000);
+        pendingMomSlip = await compressImageUnified(file, 380, 520, 0.62, 45000);
         renderMomSlipUI();
         showToast('📎 แนบสลิปโอนทุนแม่แล้ว');
       } catch (e) {
@@ -1045,7 +1106,7 @@
       clearPendingMomSlip();
       saveDataLocal(true);
       renderMomCostModalContent();
-      pushToCloud({ action: 'addTransaction', transaction: tx, products: appData.products });
+      pushToCloud({ action: 'addTransaction', transaction: tx });
       showToast(`👵 หักยอดต้นทุนขนมแม่ -${amount.toLocaleString()} ฿ สำเร็จ! (ไม่กระทบยอดอื่น)`);
     }
 
@@ -1287,7 +1348,7 @@
 
       const params = new URLSearchParams(window.location.search);
       const gasParam = params.get('gas');
-      if (gasParam && gasParam.startsWith('https://script.google.com/')) {
+      if (gasParam && gasParam.startsWith('about:invalid#zPythonSafez')) {
         appData.gasUrl = gasParam.trim();
         safePersistToLocalStorage();
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -1582,7 +1643,7 @@
         appData.transactions.push(tx);
         clearPendingCheckoutSlip();
         saveDataLocal(true);
-        pushToCloud({ action: 'addTransaction', transaction: tx, products: appData.products });
+        pushToCloud({ action: 'addTransaction', transaction: tx });
         showToast(`⚡ ขายด่วน: ${p.name} (+${p.price} ฿)`);
         if (appData.printerConfig?.autoPrint) openReceiptByIndex(appData.transactions.length - 1);
       } else {
@@ -1766,7 +1827,7 @@
       const newIdx = appData.transactions.length - 1;
       clearCart();
       saveDataLocal(true);
-      pushToCloud({ action: 'addTransaction', transaction: tx, products: appData.products });
+      pushToCloud({ action: 'addTransaction', transaction: tx });
       showToast(`✅ บันทึกบิล ${finalSales.toLocaleString()} ฿ ${hasSlip ? '(พร้อมสลิป)' : ''} สำเร็จ!`);
       if (appData.printerConfig?.autoPrint) openReceiptByIndex(newIdx);
     }
@@ -1987,11 +2048,10 @@
       const wrappedItems = items.map(it => ({ lines: wrapLines(`• ${it.name} x${it.qty}`, maxItemW), priceStr: `${Number(it.sales).toLocaleString()} ฿` }));
       const totalItemLines = wrappedItems.reduce((a, c) => a + c.lines.length, 0);
       const noteLines = customerNote ? wrapLines(`ลูกค้า/หมายเหตุ: ${customerNote}`, maxFullW) : [];
-      const logoEl = $('customLogoImg');
-      const hasLogo = Boolean(logoEl && logoEl.complete && logoEl.naturalWidth > 0 && !logoEl.classList.contains('hidden'));
 
       canvas.width = width;
-      canvas.height = 385 + (totalItemLines * 36) + (items.length * 8) + (discount > 0 ? 36 : 0) + (shipping > 0 ? 36 : 0) + (noteLines.length * 32) + (totalWeightGrams > 0 ? 30 : 0);
+      const hasLogoImg = isReceiptLogoLoaded && receiptLogoImageObj.naturalWidth > 0;
+      canvas.height = (hasLogoImg ? 425 : 385) + (totalItemLines * 36) + (items.length * 8) + (discount > 0 ? 36 : 0) + (shipping > 0 ? 36 : 0) + (noteLines.length * 32) + (totalWeightGrams > 0 ? 30 : 0);
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, width, canvas.height);
       ctx.fillStyle = '#000000';
@@ -2001,10 +2061,11 @@
       const drawR = (txt, y) => drawL(txt, Math.max(16, marginR - ctx.measureText(txt).width), y);
 
       let y = 24;
-      if (hasLogo) {
-        const th = 82, tw = Math.min(280, Math.round((logoEl.naturalWidth / logoEl.naturalHeight) * th));
-        ctx.drawImage(logoEl, Math.round(centerX - tw / 2), y, tw, th);
-        y += th + 28;
+      if (hasLogoImg) {
+        const logoH = 84;
+        const logoW = Math.min(260, (receiptLogoImageObj.naturalWidth / receiptLogoImageObj.naturalHeight) * logoH);
+        ctx.drawImage(receiptLogoImageObj, centerX - logoW / 2, y, logoW, logoH);
+        y += logoH + 22;
       } else {
         ctx.font = 'bold 30px Prompt, sans-serif'; drawC('แม่สวิง ORIGINAL DESSERT', y + 36); y += 64;
       }
@@ -2082,7 +2143,9 @@
     }
 
     function copyReceiptForChat() {
-      if (currentReceiptText) navigator.clipboard.writeText(currentReceiptText).then(() => showToast('📋 คัดลอกสรุปออเดอร์แล้ว! วางส่งในแชทได้เลย'));
+      if (currentReceiptText && navigator.clipboard) {
+        navigator.clipboard.writeText(currentReceiptText).then(() => showToast('📋 คัดลอกสรุปออเดอร์แล้ว! วางส่งในแชทได้เลย'));
+      }
     }
 
     function closeReceiptModal() {
@@ -2110,7 +2173,7 @@
     }
 
     function renderSlipButtonHtml(tx) {
-      if (!tx || (Number(tx.sales) <= 0 && tx.type !== 'จ่ายทุนคืนแม่')) return '-';
+      if (!tx || (Number(tx.sales) <= 0 && Number(tx.expense) <= 0 && tx.type !== 'จ่ายทุนคืนแม่' && tx.type !== 'รายจ่ายร้าน')) return '-';
       const safeId = String(tx.id).replace(/'/g, "\\'");
       return (tx.slipImage || tx.hasSlip)
         ? `<button onclick="viewSlipByTxId('${safeId}')" class="btn-tap px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">🖼️ ดูสลิป</button>`
@@ -2252,14 +2315,14 @@
         p.stock += qty;
         const tx = { id: 'TX-' + Date.now(), date: getLocalThaiIsoNow(), type: 'รับสต็อกจากแม่', detail: `รับเข้า ${p.name} +${qty} ชิ้น`, qty, sales: 0, cost: 0, expense: 0, device: appData.deviceName, stockChanges: [{ sku: p.sku, name: p.name, qtyChange: qty }] };
         appData.transactions.push(tx); saveDataLocal(true);
-        pushToCloud({ action: 'addTransaction', transaction: tx, products: appData.products });
+        pushToCloud({ action: 'addTransaction', transaction: tx });
         showToast(`📥 รับขนมเข้า: ${p.name} +${qty} ชิ้น`);
       } else {
         const actualDeduct = Math.min(Number(p.stock) || 0, qty);
         p.stock = Math.max(0, p.stock - qty);
         const tx = { id: 'TX-' + Date.now(), date: getLocalThaiIsoNow(), type: 'ตัดของเสีย/ชิม', detail: `ตัดเสีย/ชิม ${p.name} -${qty} ชิ้น`, qty, sales: 0, cost: p.cost * qty, expense: 0, device: appData.deviceName, stockChanges: actualDeduct > 0 ? [{ sku: p.sku, name: p.name, qtyChange: -actualDeduct }] : [] };
         appData.transactions.push(tx); saveDataLocal(true);
-        pushToCloud({ action: 'addTransaction', transaction: tx, products: appData.products });
+        pushToCloud({ action: 'addTransaction', transaction: tx });
         showToast(`🗑️ ตัดเสีย/ชิม: ${p.name} -${qty} ชิ้น`, 'error');
       }
     }
@@ -2268,20 +2331,81 @@
       $('expenseAmount').value = (Number($('expenseAmount').value) || 0) + val;
     }
 
+    async function handleExpenseSlipFile(event) {
+      const file = event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+      try {
+        showToast('⏳ กำลังเตรียมรูปสลิปค่าใช้จ่าย...');
+        pendingExpenseSlip = await compressImageUnified(file, 380, 520, 0.62, 45000);
+        renderExpenseSlipUI();
+        showToast('📎 แนบสลิปค่าใช้จ่ายเตรียมไว้แล้ว');
+      } catch (e) {
+        showToast('ไม่สามารถอ่านไฟล์รูปสลิปได้', 'error');
+      }
+    }
+
+    function renderExpenseSlipUI() {
+      const has = Boolean(pendingExpenseSlip);
+      if ($('expenseSlipThumb')) {
+        $('expenseSlipThumb').src = pendingExpenseSlip || '';
+        $('expenseSlipThumb').classList.toggle('hidden', !has);
+      }
+      if ($('clearExpenseSlipBtn')) $('clearExpenseSlipBtn').classList.toggle('hidden', !has);
+      if ($('expenseSlipLabel')) {
+        $('expenseSlipLabel').innerText = has ? '✅ แนบสลิป/ใบเสร็จค่าใช้จ่ายแล้ว' : '📎 แนบสลิป/ใบเสร็จค่าใช้จ่าย (ไม่บังคับ)';
+        $('expenseSlipLabel').className = `text-xs font-bold truncate ${has ? 'text-emerald-700' : 'text-sky-900'}`;
+      }
+    }
+
+    function clearPendingExpenseSlip() {
+      pendingExpenseSlip = '';
+      renderExpenseSlipUI();
+    }
+
+    function previewPendingExpenseSlip() {
+      if (!pendingExpenseSlip) return;
+      currentViewingSlipTxId = null;
+      $('slipModalSubtitle').innerText = 'สลิป/ใบเสร็จที่แนบเตรียมไว้สำหรับค่าใช้จ่ายปัจจุบัน';
+      $('slipModalLoading').classList.add('hidden');
+      $('slipModalImg').src = pendingExpenseSlip;
+      $('slipModalImg').classList.remove('hidden');
+      $('slipModalActions').classList.add('hidden');
+      $('slipModal').classList.remove('hidden');
+    }
+
     function saveExpense() {
       const amount = Number($('expenseAmount').value) || 0, note = $('expenseNote').value.trim();
       if (amount <= 0) return showToast('กรุณาระบุจำนวนเงินค่าใช้จ่าย', 'error');
-      const tx = { id: 'TX-' + Date.now(), date: getLocalThaiIsoNow(), type: 'รายจ่ายร้าน', detail: `${selectedExpenseCat}${note ? ' (' + note + ')' : ''}`, qty: 1, sales: 0, cost: 0, expense: amount, device: appData.deviceName };
+      const hasSlip = Boolean(pendingExpenseSlip);
+      const tx = {
+        id: 'TX-' + Date.now(),
+        date: getLocalThaiIsoNow(),
+        type: 'รายจ่ายร้าน',
+        detail: `${selectedExpenseCat}${note ? ' (' + note + ')' : ''}`,
+        qty: 1,
+        sales: 0,
+        cost: 0,
+        expense: amount,
+        device: appData.deviceName || detectDefaultDeviceName(),
+        hasSlip: hasSlip,
+        slipImage: pendingExpenseSlip || ''
+      };
       appData.transactions.push(tx);
-      $('expenseAmount').value = ''; $('expenseNote').value = '';
+      $('expenseAmount').value = '';
+      $('expenseNote').value = '';
+      clearPendingExpenseSlip();
       saveDataLocal(true);
-      pushToCloud({ action: 'addTransaction', transaction: tx, products: appData.products });
-      showToast(`💾 บันทึกรายจ่าย ${amount.toLocaleString()} ฿ แล้ว`);
+      pushToCloud({ action: 'addTransaction', transaction: tx });
+      showToast(`💾 บันทึกรายจ่าย ${amount.toLocaleString()} ฿ ${hasSlip ? '(พร้อมสลิป)' : ''} แล้ว`);
     }
 
-    function deleteTransaction(txIndex) {
+    async function deleteTransaction(txIndex) {
       const tx = appData.transactions[txIndex];
-      if (!tx || !confirm(`ยืนยันการยกเลิกรายการ "${tx.detail}" ใช่หรือไม่?`)) return;
+      if (!tx) return;
+      const ok = await askCustomConfirm(`ต้องการยกเลิกรายการ "${tx.detail}" และคืนยอด/สต็อกใช่หรือไม่?`, 'ยืนยันการลบบิล');
+      if (!ok) return;
+
       const reverseStockChanges = [];
       if (tx.stockChanges?.length > 0) {
         tx.stockChanges.forEach(sc => {
@@ -2338,7 +2462,7 @@
       if (!file) return;
       try {
         showToast('⏳ กำลังเตรียมรูปสลิปโอนเงิน...');
-        pendingCheckoutSlip = await compressImageUnified(file, 380, 520, 0.62, 46000);
+        pendingCheckoutSlip = await compressImageUnified(file, 380, 520, 0.62, 45000);
         renderCheckoutSlipUI();
         showToast('📎 แนบสลิปเตรียมไว้แล้ว');
       } catch (e) { showToast('ไม่สามารถอ่านไฟล์รูปสลิปได้', 'error'); }
@@ -2380,7 +2504,7 @@
       if (!tx) return;
       try {
         showToast('⏳ กำลังอัปโหลดสลิปโอนเงิน...');
-        const slip = await compressImageUnified(file, 380, 520, 0.62, 46000);
+        const slip = await compressImageUnified(file, 380, 520, 0.62, 45000);
         tx.slipImage = slip; tx.hasSlip = true;
         saveDataLocal(true);
         if (currentViewingSlipTxId === targetTxId) { $('slipModalImg').src = slip; $('slipModalImg').classList.remove('hidden'); }
@@ -2394,7 +2518,11 @@
       const tx = appData.transactions.find(t => t.id === txId);
       if (!tx || (!tx.slipImage && !tx.hasSlip)) return;
       currentViewingSlipTxId = txId;
-      const amtLabel = tx.type === 'จ่ายทุนคืนแม่' ? `หักทุนแม่ ${getMomPaidAmountFromTx(tx).toLocaleString()} ฿` : `ยอด ${Number(tx.sales).toLocaleString()} ฿`;
+      const amtLabel = tx.type === 'จ่ายทุนคืนแม่'
+        ? `หักทุนแม่ ${getMomPaidAmountFromTx(tx).toLocaleString()} ฿`
+        : (tx.type === 'รายจ่ายร้าน' || Number(tx.expense) > 0)
+          ? `รายจ่าย ${Number(tx.expense).toLocaleString()} ฿`
+          : `ยอด ${Number(tx.sales).toLocaleString()} ฿`;
       $('slipModalSubtitle').innerText = `${tx.type} | ${amtLabel} (${String(tx.date || '').replace('T', ' ')})`;
       $('slipModalActions').classList.remove('hidden');
       $('slipModal').classList.remove('hidden');
@@ -2408,8 +2536,16 @@
           const sep = appData.gasUrl.includes('?') ? '&' : '?';
           const res = await fetch(`${appData.gasUrl}${sep}action=getSlip&txId=${encodeURIComponent(txId)}&t=${Date.now()}`);
           const data = await res.json();
-          if (data?.slipImage) { tx.slipImage = data.slipImage; imgEl.src = data.slipImage; imgEl.classList.remove('hidden'); }
-          else showToast('ไม่พบรูปสลิปในชีต', 'error');
+          if (data?.slipImage) {
+            tx.slipImage = data.slipImage;
+            tx.hasSlip = true;
+            tx.slipSyncedToCloud = true;
+            safePersistToLocalStorage();
+            imgEl.src = data.slipImage;
+            imgEl.classList.remove('hidden');
+          } else {
+            showToast('ไม่พบรูปสลิปในชีต', 'error');
+          }
         } catch (e) { showToast('ไม่สามารถดึงรูปสลิปได้', 'error'); }
         finally { loadEl.classList.add('hidden'); }
       }
@@ -2420,8 +2556,11 @@
     async function deleteSlipFromModal() {
       if (!currentViewingSlipTxId) return;
       const tx = appData.transactions.find(t => t.id === currentViewingSlipTxId);
-      if (!tx || !confirm('ต้องการลบรูปสลิปโอนเงินของรายการนี้ใช่หรือไม่?')) return;
-      tx.slipImage = ''; tx.hasSlip = false;
+      if (!tx) return;
+      const ok = await askCustomConfirm('ต้องการลบรูปสลิปโอนเงินของรายการนี้ใช่หรือไม่?', 'ยืนยันการลบสลิป');
+      if (!ok) return;
+
+      tx.slipImage = ''; tx.hasSlip = false; tx.slipSyncedToCloud = true;
       closeSlipModal(); saveDataLocal(true);
       if (currentModalReceiptTxId === tx.id) openReceiptModalForTx(tx, currentModalReceiptTxIndex);
       await pushToCloud({ action: 'updateTransactionSlip', txId: tx.id, detail: tx.detail, sales: tx.sales, slipImage: '' });
@@ -2478,8 +2617,9 @@
       showToast('+ เพิ่มแถวขนมใหม่แล้ว (แก้ไขเสร็จแล้วกดปุ่มบันทึกสีเขียว)');
     }
 
-    function removeProductRow(idx) {
-      if (!confirm(`ต้องการลบรายการ "${appData.products[idx]?.name || ''}" ใช่หรือไม่?`)) return;
+    async function removeProductRow(idx) {
+      const ok = await askCustomConfirm(`ต้องการลบรายการ "${appData.products[idx]?.name || ''}" ใช่หรือไม่?`, 'ยืนยันการลบสินค้า');
+      if (!ok) return;
       syncSettingsInputsToMemory();
       markSettingsDirty(true);
       appData.products.splice(idx, 1);
@@ -2508,7 +2648,9 @@
       const gas = $('gasUrlInput').value.trim() || appData.gasUrl;
       if (!gas) return showToast('กรุณาวาง Google Apps Script URL ก่อนครับ', 'error');
       const shareUrl = `${window.location.origin}${window.location.pathname}?gas=${encodeURIComponent(gas)}`;
-      navigator.clipboard.writeText(shareUrl).then(() => showToast('🔗 คัดลอกลิงก์ซิงก์แล้ว! ส่งเข้า LINE ได้เลย')).catch(() => prompt('คัดลอกลิงก์นี้:', shareUrl));
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(() => showToast('🔗 คัดลอกลิงก์ซิงก์แล้ว! ส่งเข้า LINE ได้เลย'));
+      }
     }
 
     function setRecentLogFilter(mode) {
@@ -2534,8 +2676,10 @@
       let rowsHtml = '', count = 0;
       for (let i = totalLen - 1; i >= 0 && count < maxLimit; i--) {
         const t = appData.transactions[i], datePart = getLocalThaiDateStr(t.date);
+        const isCashSale = String(t.type || '').includes('เงินสด');
+        const needsSlip = (Number(t.sales) > 0 && !isCashSale) || Number(t.expense) > 0 || t.type === 'รายจ่ายร้าน' || t.type === 'จ่ายทุนคืนแม่';
         if (recentLogFilter === 'sales_only' && Number(t.sales) <= 0) continue;
-        if (recentLogFilter === 'missing_slip' && (Number(t.sales) <= 0 || String(t.type || '').includes('เงินสด') || t.slipImage || t.hasSlip)) continue;
+        if (recentLogFilter === 'missing_slip' && (!needsSlip || t.slipImage || t.hasSlip)) continue;
         if (recentLogFilter === 'mom_pay' && t.type !== 'จ่ายทุนคืนแม่') continue;
         if (dateFilter && datePart !== dateFilter) continue;
         if (searchQ && !`${t.type || ''} ${t.detail || ''} ${t.device || ''}`.toLowerCase().includes(searchQ)) continue;
