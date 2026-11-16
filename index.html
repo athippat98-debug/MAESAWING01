@@ -250,11 +250,11 @@
 
       <div id="receiptPrintableArea" class="mx-auto w-full max-w-[272px] space-y-2 text-black border border-dashed border-neutral-300 p-3 rounded-xl bg-white">
         <div class="text-center border-b border-dashed border-neutral-400 pb-2 flex flex-col items-center">
-          <div id="rcpFallbackLogo" class="logo-banner-curve px-3 py-1 flex flex-col items-center justify-center min-w-[110px] mb-1">
+          <img id="rcpLogoImg" src="logo.png" alt="แม่สวิง ORIGINAL DESSERT" class="h-12 w-auto object-contain mb-1" onload="this.classList.remove('hidden'); document.getElementById('rcpFallbackLogo').classList.add('hidden');" onerror="this.classList.add('hidden'); document.getElementById('rcpFallbackLogo').classList.remove('hidden');">
+          <div id="rcpFallbackLogo" class="hidden logo-banner-curve px-3 py-1 flex flex-col items-center justify-center min-w-[110px] mb-1">
             <span class="text-white font-bold text-sm italic">แม่สวิง</span>
             <span class="font-serif-en text-[8px] tracking-[0.15em] text-amber-50 uppercase mt-0.5">ORIGINAL DESSERT</span>
           </div>
-          <img src="./logo.png" alt="โลโก้แม่สวิง" class="h-12 w-auto max-w-[160px] object-contain mb-1" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none'">
           <p class="text-[11px] font-bold">ใบสรุปรายการขนม / ใบเสร็จรับเงิน</p>
           <p class="text-[10px] text-neutral-600" id="rcpDate">-</p>
         </div>
@@ -298,12 +298,12 @@
     <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
       <div class="flex items-center gap-2.5 md:gap-3">
         <div class="shrink-0">
-          <div id="fallbackLogoSvg" class="logo-banner-curve px-3 py-1 flex flex-col items-center justify-center min-w-[105px]">
+          <img id="mainLogoImg" src="logo.png" alt="แม่สวิง ORIGINAL DESSERT" class="h-10 md:h-11 w-auto object-contain rounded-lg" onload="this.classList.remove('hidden'); document.getElementById('fallbackLogoSvg').classList.add('hidden');" onerror="this.classList.add('hidden'); document.getElementById('fallbackLogoSvg').classList.remove('hidden');">
+          <div id="fallbackLogoSvg" class="hidden logo-banner-curve px-3 py-1 flex flex-col items-center justify-center min-w-[105px]">
             <span class="text-white font-bold text-sm md:text-base italic">แม่สวิง</span>
             <div class="w-full h-[1px] bg-amber-200/80 my-0.5"></div>
             <span class="font-serif-en text-[8px] tracking-[0.18em] text-amber-50 uppercase">ORIGINAL DESSERT</span>
           </div>
-          <img src="./logo.png" alt="โลโก้แม่สวิง" class="h-12 w-auto max-w-[140px] object-contain" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none'">
         </div>
         <div>
           <div class="flex flex-wrap items-center gap-1.5">
@@ -2042,8 +2042,11 @@
       const totalItemLines = wrappedItems.reduce((a, c) => a + c.lines.length, 0);
       const noteLines = customerNote ? wrapLines(`ลูกค้า/หมายเหตุ: ${customerNote}`, maxFullW) : [];
 
+      const logoEl = $('rcpLogoImg') || $('mainLogoImg');
+      const hasLogoImg = Boolean(logoEl && logoEl.complete && logoEl.naturalWidth > 0 && !logoEl.classList.contains('hidden'));
+
       canvas.width = width;
-      canvas.height = 385 + (totalItemLines * 36) + (items.length * 8) + (discount > 0 ? 36 : 0) + (shipping > 0 ? 36 : 0) + (noteLines.length * 32) + (totalWeightGrams > 0 ? 30 : 0);
+      canvas.height = 385 + (hasLogoImg ? 32 : 0) + (totalItemLines * 36) + (items.length * 8) + (discount > 0 ? 36 : 0) + (shipping > 0 ? 36 : 0) + (noteLines.length * 32) + (totalWeightGrams > 0 ? 30 : 0);
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, width, canvas.height);
       ctx.fillStyle = '#000000';
@@ -2053,7 +2056,15 @@
       const drawR = (txt, y) => drawL(txt, Math.max(16, marginR - ctx.measureText(txt).width), y);
 
       let y = 24;
-      ctx.font = 'bold 30px Prompt, sans-serif'; drawC('แม่สวิง ORIGINAL DESSERT', y + 36); y += 64;
+      if (hasLogoImg) {
+        const ratio = logoEl.naturalWidth / logoEl.naturalHeight;
+        const drawH = 72;
+        const drawW = Math.min(260, Math.round(drawH * ratio));
+        ctx.drawImage(logoEl, Math.round(centerX - drawW / 2), y, drawW, drawH);
+        y += drawH + 24;
+      } else {
+        ctx.font = 'bold 30px Prompt, sans-serif'; drawC('แม่สวิง ORIGINAL DESSERT', y + 36); y += 64;
+      }
 
       ctx.font = 'bold 22px Prompt, sans-serif'; drawC('ใบสรุปรายการขนม / ใบเสร็จรับเงิน', y);
       y += 30; ctx.font = '400 18px Prompt, sans-serif'; drawC('วัน-เวลา: ' + String(tx.date || '').replace('T', ' '), y);
